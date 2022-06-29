@@ -23,7 +23,7 @@ const resizeImage = async (imageBuffer, properties) => {
 		.resize({
 			width: properties.width,
 			height: properties.height,
-			fit: "contain",
+			fit: properties.fit,
 			background: {
 				r: properties.colour.r,
 				g: properties.colour.g,
@@ -32,8 +32,33 @@ const resizeImage = async (imageBuffer, properties) => {
 			},
 		})
 		.extend({ background: "red" })
-		.toFile(`./processed/new.${properties.format}`);
+		.toBuffer()
+		.then((data) => {
+			saveImage(data, `resize.${properties.format}`);
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+
 	return resized;
+};
+
+const rotateImage = async (imageBuffer, properties) => {
+	const rotated = sharp(imageBuffer)
+		.flip()
+		.toBuffer()
+		.then((data) => {
+			saveImage(data, `rotate.${properties.format}`);
+		})
+		.catch((err) => {
+			console.log(err);
+		});
+
+	return rotated;
+};
+
+const saveImage = async (buffer, fileName) => {
+	sharp(buffer).toFile(`./processed/${fileName}`);
 };
 
 app.post("/upload", (req, res) => {
@@ -44,15 +69,16 @@ app.post("/upload", (req, res) => {
 				responseMessage: "Error. File was not uploaded",
 			});
 		} else {
-			console.log(req.body.width);
 			const uploadedImage = req.files.image;
-			uploadedImage.mv("./img/" + uploadedImage.name).then(() => {
-				const buffer = fs.readFileSync("./img/" + uploadedImage.name);
+			uploadedImage.mv(`./img/${uploadedImage.name}`);
+			const buffer = fs.readFileSync(`./img/${uploadedImage.name}`);
 
+			uploadedImage.mv("./img/" + uploadedImage.name).then(() => {
 				const properties = {
 					format: req.body.format,
 					width: parseInt(req.body.width),
 					height: parseInt(req.body.height),
+					fit: req.body.fit,
 					colour: {
 						r: parseInt(req.body.r),
 						g: parseInt(req.body.g),
@@ -61,21 +87,9 @@ app.post("/upload", (req, res) => {
 					},
 				};
 
-				console.log(properties.colour);
-				resizeImage(buffer, properties).then((response) => {
-					console.log(response);
-
-					fs.unlink("./img/" + uploadedImage.name, () => {
-						res.status(202).sendFile(
-							`/processed/new.${properties.format}`,
-							{
-								root: __dirname,
-							}
-						);
-					});
-				});
+				resizeImage(buffer, properties);
+				rotateImage(buffer, properties);
 			});
-
 			/*
             res.send({
 				uploaded: true,
