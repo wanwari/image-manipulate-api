@@ -5,7 +5,7 @@ import fileUpload from "express-fileupload";
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, urlToHttpOptions } from "url";
 
 const app = express();
 
@@ -34,32 +34,54 @@ const resizeImage = async (imageBuffer, properties) => {
 				alpha: properties.colour.a,
 			},
 		})
-		.toBuffer()
-		.then((data) => {
-			return data;
-		})
-		.catch((err) => {
-			console.log(err);
-		});
+		.toBuffer();
 };
 
 const rotateImage = async (imageBuffer, properties) => {
 	return sharp(imageBuffer)
-		.flip()
-		.toBuffer()
-		.then((data) => {
-			return data;
+		.rotate(properties.angle, {
+			background: {
+				r: properties.colour.r,
+				g: properties.colour.g,
+				b: properties.colour.b,
+				alpha: properties.colour.a,
+			},
 		})
-		.catch((err) => {
-			console.log(err);
-		});
+		.toBuffer();
+};
+
+const flipImage = async (imageBuffer) => {
+	return sharp(imageBuffer).flip().toBuffer();
+};
+
+const flopImage = async (imageBuffer) => {
+	return sharp(imageBuffer).flop().toBuffer();
+};
+
+const sharpenImage = async (imageBuffer, properties) => {
+	return sharp(imageBuffer)
+		.sharpen({
+			sigma: properties.sigma,
+			m1: properties.flat,
+			m2: properties.jagged,
+			x1: properties.flatAndJaggedThreshold,
+			y1: properties.brightening,
+			y2: properties.darkening,
+		})
+		.toBuffer();
+};
+
+const medianImage = async (imageBuffer, properties) => {
+	return sharp(imageBuffer).median(properties.median).toBuffer();
 };
 
 const saveAndSendImage = async (res, buffer, properties) => {
+	const file = `processed/new.${properties.format}`;
+
 	sharp(buffer)
-		.toFile(`processed/new.${properties.format}`)
+		.toFile(file)
 		.then(() => {
-			res.sendFile(`processed/new.${properties.format}`, {
+			res.sendFile(file, {
 				root: __dirname,
 			});
 		});
@@ -102,6 +124,8 @@ app.get("/edit", (req, res) => {
 		},
 		rotate: req.body.rotate,
 		resize: req.body.resize,
+		angle: parseInt(req.body.angle),
+		sigma: parseInt(req.body.sigma),
 	};
 
 	try {
@@ -119,6 +143,8 @@ const editImage = async (res, buffer, properties) => {
 
 	if (properties.rotate === "true")
 		buffer = await rotateImage(buffer, properties);
+
+	buffer = await medianImage(buffer, properties);
 
 	await saveAndSendImage(res, buffer, properties);
 };
