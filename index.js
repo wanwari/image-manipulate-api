@@ -4,7 +4,7 @@ import bodyParser from "body-parser";
 import fileUpload from "express-fileupload";
 import sharp from "sharp";
 import fs from "fs";
-import { dirname } from "path";
+import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
@@ -15,7 +15,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
+
 const PORT = process.env.PORT || 3000;
 
 const resizeImage = async (imageBuffer, properties) => {
@@ -34,7 +35,7 @@ const resizeImage = async (imageBuffer, properties) => {
 		.extend({ background: "red" })
 		.toBuffer()
 		.then((data) => {
-			saveImage(data, `resize.${properties.format}`);
+			return data;
 		})
 		.catch((err) => {
 			console.log(err);
@@ -48,7 +49,7 @@ const rotateImage = async (imageBuffer, properties) => {
 		.flip()
 		.toBuffer()
 		.then((data) => {
-			saveImage(data, `rotate.${properties.format}`);
+			return data;
 		})
 		.catch((err) => {
 			console.log(err);
@@ -57,8 +58,14 @@ const rotateImage = async (imageBuffer, properties) => {
 	return rotated;
 };
 
-const saveImage = async (buffer, fileName) => {
-	sharp(buffer).toFile(`./processed/${fileName}`);
+const saveAndSendImage = async (res, buffer, fileName) => {
+	sharp(buffer)
+		.toFile(`processed/${fileName}`)
+		.then(() => {
+			res.sendFile("processed/new.jpeg", {
+				root: __dirname,
+			});
+		});
 };
 
 app.post("/upload", (req, res) => {
@@ -70,10 +77,9 @@ app.post("/upload", (req, res) => {
 			});
 		} else {
 			const uploadedImage = req.files.image;
-			uploadedImage.mv(`./img/${uploadedImage.name}`);
-			const buffer = fs.readFileSync(`./img/${uploadedImage.name}`);
 
-			uploadedImage.mv("./img/" + uploadedImage.name).then(() => {
+			uploadedImage.mv(`./img/${uploadedImage.name}`).then(async () => {
+				let buffer = fs.readFileSync(`./img/${uploadedImage.name}`);
 				const properties = {
 					format: req.body.format,
 					width: parseInt(req.body.width),
@@ -85,17 +91,24 @@ app.post("/upload", (req, res) => {
 						b: parseInt(req.body.b),
 						a: parseInt(req.body.a),
 					},
+					rotate: req.body.rotate,
+					resize: req.body.resize,
 				};
 
-				resizeImage(buffer, properties);
-				rotateImage(buffer, properties);
+				if (properties.resize === "true")
+					buffer = await resizeImage(buffer, properties);
+
+				if (properties.rotate === "true")
+					buffer = await rotateImage(buffer, properties);
+
+				await saveAndSendImage(
+					res,
+					buffer,
+					`new.${properties.format}`
+				).then(() => {
+					console.log("Completed");
+				});
 			});
-			/*
-            res.send({
-				uploaded: true,
-				responseMessage: "Success. File was uploaded",
-			});
-            */
 		}
 	} catch (error) {
 		console.log(error);
