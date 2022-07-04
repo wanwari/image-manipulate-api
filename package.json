@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "API for image manipulation tool",
   "main": "index.js",
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -29,5 +29,12 @@
     "fs": "^0.0.1-security",
     "path": "^0.12.7",
     "sharp": "^0.30.7"
+  },
+  "devDependencies": {
+    "@types/body-parser": "^1.19.2",
+    "@types/cors": "^2.8.12",
+    "@types/express": "^4.17.13",
+    "@types/express-fileupload": "^1.2.2",
+    "@types/node": "^18.0.1"
   }
 }
