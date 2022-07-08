@@ -1,9 +1,7 @@
-const sharp = require("sharp");
+import sharp from "sharp";
 import { ModifyProps } from "./Interfaces";
 
 export const resize = async (image: Buffer, properties: ModifyProps) => {
-	console.log(properties);
-
 	return sharp(image)
 		.resize(properties.width, properties.height, {
 			fit: properties.fit,
@@ -28,6 +26,26 @@ export const rotate = async (image: Buffer, properties: ModifyProps) => {
 		.toBuffer();
 };
 
-export const shapren = async (image: Buffer, properties: ModifyProps) => {
-	return sharp(image).sharpen(properties).toBuffer();
+export const sharpen = async (image: Buffer, properties: ModifyProps) => {
+	return sharp(image).sharpen(properties.sigma).toBuffer();
+};
+
+export const blur = async (image: Buffer, properties: ModifyProps) => {
+	return sharp(image).blur(properties.blur).toBuffer();
+};
+
+export const negate = async (image: Buffer) => {
+	return sharp(image).negate().toBuffer();
+};
+
+export const normalize = async (image: Buffer) => {
+	return sharp(image).normalize().toBuffer();
+};
+
+export const tint = async (image: Buffer, properties: ModifyProps) => {
+	return sharp(image).tint(properties.tint).toBuffer();
+};
+
+export const grayscale = async (image: Buffer) => {
+	return sharp(image).grayscale().toBuffer();
 };

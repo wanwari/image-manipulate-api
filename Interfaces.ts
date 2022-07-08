@@ -2,7 +2,7 @@ export interface Color {
 	r: number;
 	g: number;
 	b: number;
-	alpha: number;
+	alpha?: number;
 }
 
 enum FitEnum {
@@ -28,4 +28,8 @@ export interface ModifyProps {
 	x1?: number;
 	y2?: number;
 	y3?: number;
+	blur?: number;
+	negate?: string;
+	normalize?: string;
+	tint: Color;
 }
