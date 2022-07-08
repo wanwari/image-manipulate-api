@@ -1,4 +1,4 @@
-export interface Color {
+export interface Colour {
 	r: number;
 	g: number;
 	b: number;
@@ -18,18 +18,9 @@ export interface ModifyProps {
 	width?: number;
 	height?: number;
 	fit?: FitEnum;
-	color?: Color;
-	rotate?: string;
-	resize?: string;
+	colour: Colour;
 	angle?: number;
 	sigma?: number;
-	m1?: number;
-	m2?: number;
-	x1?: number;
-	y2?: number;
-	y3?: number;
 	blur?: number;
-	negate?: string;
-	normalize?: string;
-	tint: Color;
+	tint: Colour;
 }

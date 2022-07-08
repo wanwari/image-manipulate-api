@@ -5,7 +5,7 @@ export const resize = async (image: Buffer, properties: ModifyProps) => {
 	return sharp(image)
 		.resize(properties.width, properties.height, {
 			fit: properties.fit,
-			background: properties.color,
+			background: properties.colour,
 		})
 		.toBuffer();
 };
@@ -21,7 +21,7 @@ export const flop = async (image: Buffer) => {
 export const rotate = async (image: Buffer, properties: ModifyProps) => {
 	return sharp(image)
 		.rotate(properties.angle, {
-			background: properties.color,
+			background: properties.colour,
 		})
 		.toBuffer();
 };

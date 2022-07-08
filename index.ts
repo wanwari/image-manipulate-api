@@ -7,8 +7,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { ModifyProps } from "./Interfaces";
 import * as operate from "./Operations.js";
+import { ModifyProps } from "./Interfaces.js";
 
 const app = express();
 
@@ -17,7 +17,6 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-//Don't need to declare __filename & __dirname when not using ES6 module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -60,51 +59,45 @@ app.post("/upload", (req: any, res: any) => {
 });
 
 app.get("/edit", (req: any, res: any) => {
-	const properties: any = req.body;
-	/*
-	const properties: ModifyProps = {
-		fileFormat: req.body.format,
-		width: parseInt(req.body.width),
-		height: parseInt(req.body.height),
-		fit: req.body.fit,
-		color: {
-			r: parseInt(req.body.r),
-			g: parseInt(req.body.g),
-			b: parseInt(req.body.b),
-			alpha: parseInt(req.body.alpha),
-		},
-		rotate: req.body.rotate,
-		resize: req.body.resize,
-		angle: parseInt(req.body.angle),
-		sigma: parseInt(req.body.sigma),
-		m1: parseInt(req.body.sigma),
-		m2: parseInt(req.body.flat),
-		x1: parseInt(req.body.flatAndJagged),
-		y2: parseInt(req.body.brightening),
-		y3: parseInt(req.body.darkening),
-		blur: parseInt(req.body.blur),
-		negate: req.body.negate,
-		normalize: req.body.normalize,
-		tint: {
-			r: parseInt(req.body.tr),
-			g: parseInt(req.body.tg),
-			b: parseInt(req.body.tb),
-			alpha: 0.2,
-		},
-	};
-
+	const properties: ModifyProps = req.body;
 	try {
 		let buffer = fs.readFileSync(`img/${fileName}`);
 		editImage(res, buffer, properties);
-		async () => {};
 	} catch (err) {
 		console.log(err);
 	}
-	*/
 });
 
 const editImage = async (res: any, buffer: Buffer, properties: any) => {
-	buffer = await operate.sharpen(buffer, properties);
+	if (properties.operations.includes("resize"))
+		buffer = await operate.resize(buffer, properties);
+
+	if (properties.operations.includes("flip"))
+		buffer = await operate.flip(buffer);
+
+	if (properties.operations.includes("flop"))
+		buffer = await operate.flop(buffer);
+
+	if (properties.operations.includes("rotate"))
+		buffer = await operate.rotate(buffer, properties);
+
+	if (properties.operations.includes("sharpen"))
+		buffer = await operate.sharpen(buffer, properties);
+
+	if (properties.operations.includes("blur"))
+		buffer = await operate.blur(buffer, properties);
+
+	if (properties.operations.includes("negate"))
+		buffer = await operate.negate(buffer);
+
+	if (properties.operations.includes("normalize"))
+		buffer = await operate.normalize(buffer);
+
+	if (properties.operations.includes("tint"))
+		buffer = await operate.tint(buffer, properties);
+
+	if (properties.operations.includes("grayscale"))
+		buffer = await operate.grayscale(buffer);
 
 	await saveAndSendImage(res, buffer, properties);
 };
