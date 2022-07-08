@@ -1,4 +1,3 @@
-/*
 import cors from "cors";
 import express from "express";
 import bodyParser from "body-parser";
@@ -6,15 +5,7 @@ import fileUpload from "express-fileupload";
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath, urlToHttpOptions } from "url"
-*/
-
-const sharp = require("sharp");
-const cors = require("cors");
-const express = require("express");
-const bodyParser = require("body-parser");
-const fileUpload = require("express-fileupload");
-const fs = require("fs");
+import { fileURLToPath } from "url";
 
 import { ModifyProps } from "./Interfaces";
 import * as operate from "./Operations.js";
@@ -27,8 +18,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 //Don't need to declare __filename & __dirname when not using ES6 module
-//const __filename = fileURLToPath(import.meta.url);
-//const __dirname = path.dirname(__filename);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 
@@ -69,6 +60,8 @@ app.post("/upload", (req: any, res: any) => {
 });
 
 app.get("/edit", (req: any, res: any) => {
+	const properties: any = req.body;
+	/*
 	const properties: ModifyProps = {
 		fileFormat: req.body.format,
 		width: parseInt(req.body.width),
@@ -89,6 +82,15 @@ app.get("/edit", (req: any, res: any) => {
 		x1: parseInt(req.body.flatAndJagged),
 		y2: parseInt(req.body.brightening),
 		y3: parseInt(req.body.darkening),
+		blur: parseInt(req.body.blur),
+		negate: req.body.negate,
+		normalize: req.body.normalize,
+		tint: {
+			r: parseInt(req.body.tr),
+			g: parseInt(req.body.tg),
+			b: parseInt(req.body.tb),
+			alpha: 0.2,
+		},
 	};
 
 	try {
@@ -98,10 +100,11 @@ app.get("/edit", (req: any, res: any) => {
 	} catch (err) {
 		console.log(err);
 	}
+	*/
 });
 
 const editImage = async (res: any, buffer: Buffer, properties: any) => {
-	buffer = await operate.shapren(buffer, properties);
+	buffer = await operate.sharpen(buffer, properties);
 
 	await saveAndSendImage(res, buffer, properties);
 };
