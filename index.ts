@@ -10,19 +10,26 @@ import session from "express-session";
 import { fileURLToPath } from "url";
 import * as operate from "./Operations.js";
 import { ModifyProps } from "./Interfaces.js";
+import dotenv from "dotenv";
 
 const app = express();
 
-app.use(fileUpload());
-app.use(cors());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(session({ secret: "ima" }));
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, ".env") });
 
+app.use(cors());
+app.use(fileUpload());
+app.use(cookieParser());
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(
+	session({
+		secret: "IMA-" + process.env.SESSION_SECRET,
+		resave: true,
+		saveUninitialized: true,
+	})
+);
 const PORT = process.env.PORT || 3000;
 
 const sendImage = async (
@@ -76,7 +83,6 @@ app.post("/upload", (req: any, res: any) => {
 });
 
 app.get("/edit", (req: any, res: any) => {
-	console.log(req.session.fileName);
 	const properties: ModifyProps = req.body;
 	try {
 		let buffer = fs.readFileSync(`uploaded/${req.session.fileName}`);
