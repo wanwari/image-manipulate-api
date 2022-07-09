@@ -23,15 +23,22 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
 let fileName = "";
-const saveAndSendImage = async (res: any, buffer: Buffer, properties: any) => {
-	const file = `processed/new.${properties.fileFormat}`;
+const sendImage = async (res: any, buffer: Buffer, properties: any) => {
+	const file = `./processed/${Date.now()}.${properties.fileFormat}`;
 
 	sharp(buffer)
 		.toFile(file)
-		.then(() => {
-			res.sendFile(file, {
-				root: __dirname,
-			});
+		.then(async () => {
+			res.sendFile(
+				file,
+				{
+					root: __dirname,
+				},
+				() => {
+					fs.unlinkSync(`./uploaded/${fileName}`);
+					fs.unlinkSync(file);
+				}
+			);
 		});
 };
 
@@ -45,12 +52,16 @@ app.post("/upload", (req: any, res: any) => {
 		} else {
 			const uploadedImage: any = req.files.image;
 
-			uploadedImage.mv(`./img/${uploadedImage.name}`).then(async () => {
-				let buffer = fs.readFileSync(`./img/${uploadedImage.name}`);
-				fileName = uploadedImage.name;
-				const metadata = await sharp(buffer).metadata();
-				res.send(metadata);
-			});
+			uploadedImage
+				.mv(`./uploaded/${uploadedImage.name}`)
+				.then(async () => {
+					let buffer = fs.readFileSync(
+						`./uploaded/${uploadedImage.name}`
+					);
+					fileName = uploadedImage.name;
+					const metadata = await sharp(buffer).metadata();
+					res.send(metadata);
+				});
 		}
 	} catch (error) {
 		console.log(error);
@@ -61,7 +72,7 @@ app.post("/upload", (req: any, res: any) => {
 app.get("/edit", (req: any, res: any) => {
 	const properties: ModifyProps = req.body;
 	try {
-		let buffer = fs.readFileSync(`img/${fileName}`);
+		let buffer = fs.readFileSync(`uploaded/${fileName}`);
 		editImage(res, buffer, properties);
 	} catch (err) {
 		console.log(err);
@@ -99,7 +110,7 @@ const editImage = async (res: any, buffer: Buffer, properties: any) => {
 	if (properties.operations.includes("grayscale"))
 		buffer = await operate.grayscale(buffer);
 
-	await saveAndSendImage(res, buffer, properties);
+	await sendImage(res, buffer, properties);
 };
 
 app.listen(PORT, () => {
