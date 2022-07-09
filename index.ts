@@ -5,8 +5,9 @@ import fileUpload from "express-fileupload";
 import sharp from "sharp";
 import fs from "fs";
 import path from "path";
+import cookieParser from "cookie-parser";
+import session from "express-session";
 import { fileURLToPath } from "url";
-
 import * as operate from "./Operations.js";
 import { ModifyProps } from "./Interfaces.js";
 
@@ -16,27 +17,33 @@ app.use(fileUpload());
 app.use(cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(session({ secret: "ima" }));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
 
-let fileName = "";
-const sendImage = async (res: any, buffer: Buffer, properties: any) => {
-	const file = `./processed/${Date.now()}.${properties.fileFormat}`;
-
+const sendImage = async (
+	req: any,
+	res: any,
+	buffer: Buffer,
+	properties: any
+) => {
+	const newFile = `./processed/${Date.now()}.${properties.fileFormat}`;
+	const oldFile = `./uploaded/${req.session.fileName}`;
 	sharp(buffer)
-		.toFile(file)
+		.toFile(newFile)
 		.then(async () => {
 			res.sendFile(
-				file,
+				newFile,
 				{
 					root: __dirname,
 				},
 				() => {
-					fs.unlinkSync(`./uploaded/${fileName}`);
-					fs.unlinkSync(file);
+					fs.unlinkSync(oldFile);
+					fs.unlinkSync(newFile);
 				}
 			);
 		});
@@ -51,14 +58,13 @@ app.post("/upload", (req: any, res: any) => {
 			});
 		} else {
 			const uploadedImage: any = req.files.image;
-
 			uploadedImage
 				.mv(`./uploaded/${uploadedImage.name}`)
 				.then(async () => {
 					let buffer = fs.readFileSync(
 						`./uploaded/${uploadedImage.name}`
 					);
-					fileName = uploadedImage.name;
+					req.session.fileName = uploadedImage.name;
 					const metadata = await sharp(buffer).metadata();
 					res.send(metadata);
 				});
@@ -70,16 +76,22 @@ app.post("/upload", (req: any, res: any) => {
 });
 
 app.get("/edit", (req: any, res: any) => {
+	console.log(req.session.fileName);
 	const properties: ModifyProps = req.body;
 	try {
-		let buffer = fs.readFileSync(`uploaded/${fileName}`);
-		editImage(res, buffer, properties);
+		let buffer = fs.readFileSync(`uploaded/${req.session.fileName}`);
+		editImage(req, res, buffer, properties);
 	} catch (err) {
 		console.log(err);
 	}
 });
 
-const editImage = async (res: any, buffer: Buffer, properties: any) => {
+const editImage = async (
+	req: any,
+	res: any,
+	buffer: Buffer,
+	properties: any
+) => {
 	if (properties.operations.includes("resize"))
 		buffer = await operate.resize(buffer, properties);
 
@@ -110,7 +122,7 @@ const editImage = async (res: any, buffer: Buffer, properties: any) => {
 	if (properties.operations.includes("grayscale"))
 		buffer = await operate.grayscale(buffer);
 
-	await sendImage(res, buffer, properties);
+	await sendImage(req, res, buffer, properties);
 };
 
 app.listen(PORT, () => {
