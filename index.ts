@@ -11,6 +11,7 @@ import { fileURLToPath } from "url";
 import * as operate from "./Operations.js";
 import { ModifyProps } from "./Interfaces.js";
 import dotenv from "dotenv";
+import child_process from "child_process";
 
 const app = express();
 
@@ -30,30 +31,41 @@ app.use(
 		saveUninitialized: true,
 	})
 );
+
 const PORT = process.env.PORT || 3000;
 
-const sendImage = async (
-	req: any,
-	res: any,
+const saveImages = async (
+	folder: string,
+	fileName: string,
 	buffer: Buffer,
-	properties: any
+	fileFormat: string
 ) => {
-	const newFile = `./processed/${Date.now()}.${properties.fileFormat}`;
-	const oldFile = `./uploaded/${req.session.fileName}`;
-	sharp(buffer)
-		.toFile(newFile)
-		.then(async () => {
+	const newFile = `./processed/${folder}/${fileName}.${fileFormat}`;
+	sharp(buffer).toFile(newFile);
+};
+
+const sendImages = async (req: any, res: any) => {
+	child_process.exec(
+		`zip -r ./processed/${req.session.folder}/${req.session.folder}.zip ./processed/${req.session.folder}`,
+		() => {
 			res.sendFile(
-				newFile,
-				{
-					root: __dirname,
-				},
+				`./processed/${req.session.folder}/${req.session.folder}.zip`,
+				{ root: __dirname },
 				() => {
-					fs.unlinkSync(oldFile);
-					fs.unlinkSync(newFile);
+					fs.rm(
+						`./processed/${req.session.folder}`,
+						{ recursive: true },
+						() => console.log("Deleted")
+					);
+					fs.rm(
+						`./uploaded/${req.session.folder}`,
+						{ recursive: true },
+						() => console.log("Deleted")
+					);
 				}
 			);
-		});
+		}
+	);
 };
 
 app.post("/upload", (req: any, res: any) => {
@@ -64,17 +76,26 @@ app.post("/upload", (req: any, res: any) => {
 				responseMessage: "Error. File was not uploaded",
 			});
 		} else {
-			const uploadedImage: any = req.files.image;
-			uploadedImage
-				.mv(`./uploaded/${uploadedImage.name}`)
-				.then(async () => {
+			const now = Date.now();
+			req.session.folder = now;
+			let metadata: any = [];
+			fs.mkdirSync(`./uploaded/${now}`);
+			fs.mkdirSync(`./processed/${now}`);
+
+			const uploadedImages: any = req.files.image;
+			uploadedImages.forEach((image: any) => {
+				console.log(image.name);
+				image.mv(`./uploaded/${now}/${image.name}`).then(async () => {
 					let buffer = fs.readFileSync(
-						`./uploaded/${uploadedImage.name}`
+						`./uploaded/${now}/${image.name}`
 					);
-					req.session.fileName = uploadedImage.name;
-					const metadata = await sharp(buffer).metadata();
-					res.send(metadata);
+					await sharp(buffer)
+						.metadata()
+						.then((meta) => metadata.push(meta));
 				});
+			});
+
+			res.send(metadata);
 		}
 	} catch (error) {
 		console.log(error);
@@ -84,17 +105,23 @@ app.post("/upload", (req: any, res: any) => {
 
 app.get("/edit", (req: any, res: any) => {
 	const properties: ModifyProps = req.body;
-	try {
-		let buffer = fs.readFileSync(`uploaded/${req.session.fileName}`);
-		editImage(req, res, buffer, properties);
-	} catch (err) {
-		console.log(err);
-	}
+
+	fs.readdir(`./uploaded/${req.session.folder}`, async (err, files) => {
+		let i = 0;
+		for (; i < files.length; i++) {
+			const buffer = fs.readFileSync(
+				`./uploaded/${req.session.folder}/${files[i]}`
+			);
+			await editImage(req, res, files[i], buffer, properties);
+		}
+		await sendImages(req, res);
+	});
 });
 
 const editImage = async (
 	req: any,
 	res: any,
+	fileName: string,
 	buffer: Buffer,
 	properties: any
 ) => {
@@ -128,7 +155,12 @@ const editImage = async (
 	if (properties.operations.includes("grayscale"))
 		buffer = await operate.grayscale(buffer);
 
-	await sendImage(req, res, buffer, properties);
+	await saveImages(
+		req.session.folder,
+		fileName,
+		buffer,
+		properties.fileFormat
+	);
 };
 
 app.listen(PORT, () => {
