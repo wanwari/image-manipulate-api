@@ -52,6 +52,7 @@ const sendImages = async (req: any, res: any) => {
 				`./processed/${req.session.folder}/${req.session.folder}.zip`,
 				{ root: __dirname },
 				() => {
+					/*
 					fs.rm(
 						`./processed/${req.session.folder}`,
 						{ recursive: true },
@@ -62,6 +63,7 @@ const sendImages = async (req: any, res: any) => {
 						{ recursive: true },
 						() => console.log("Deleted")
 					);
+					*/
 				}
 			);
 		}
@@ -82,19 +84,18 @@ app.post("/upload", (req: any, res: any) => {
 			fs.mkdirSync(`./uploaded/${now}`);
 			fs.mkdirSync(`./processed/${now}`);
 
-			const uploadedImages: any = req.files.image;
+			const uploadedImages: any =
+				req.files.image.length > 1
+					? req.files.image
+					: [req.files.image];
 			uploadedImages.forEach((image: any) => {
-				console.log(image.name);
 				image.mv(`./uploaded/${now}/${image.name}`).then(async () => {
 					let buffer = fs.readFileSync(
 						`./uploaded/${now}/${image.name}`
 					);
-					await sharp(buffer)
-						.metadata()
-						.then((meta) => metadata.push(meta));
+					metadata.push(await sharp(buffer).metadata());
 				});
 			});
-
 			res.send(metadata);
 		}
 	} catch (error) {
