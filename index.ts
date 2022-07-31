@@ -52,7 +52,6 @@ const sendImages = async (req: any, res: any) => {
 				`./processed/${req.session.folder}/${req.session.folder}.zip`,
 				{ root: __dirname },
 				() => {
-					/*
 					fs.rm(
 						`./processed/${req.session.folder}`,
 						{ recursive: true },
@@ -63,7 +62,6 @@ const sendImages = async (req: any, res: any) => {
 						{ recursive: true },
 						() => console.log("Deleted")
 					);
-					*/
 				}
 			);
 		}
@@ -88,19 +86,22 @@ app.post("/upload", (req: any, res: any) => {
 				req.files.image.length > 1
 					? req.files.image
 					: [req.files.image];
-			uploadedImages.forEach((image: any) => {
-				image.mv(`./uploaded/${now}/${image.name}`).then(async () => {
-					let buffer = fs.readFileSync(
-						`./uploaded/${now}/${image.name}`
-					);
-					metadata.push(await sharp(buffer).metadata());
-				});
+			for (let i = 0; i < uploadedImages.length; i++) {
+				uploadedImages[i].mv(
+					`./uploaded/${now}/${uploadedImages[i].name}`
+				);
+			}
+			res.send({
+				uploaded: true,
+				responseMessage: "Success. Files were uploaded",
 			});
-			res.send(metadata);
 		}
 	} catch (error) {
 		console.log(error);
-		res.status(500).send(error);
+		res.status(500).send({
+			uploaded: false,
+			responseMessage: "Error. File was not uploaded",
+		});
 	}
 });
 
