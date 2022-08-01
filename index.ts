@@ -78,7 +78,6 @@ app.post("/upload", (req: any, res: any) => {
 		} else {
 			const now = Date.now();
 			req.session.folder = now;
-			let metadata: any = [];
 			fs.mkdirSync(`./uploaded/${now}`);
 			fs.mkdirSync(`./processed/${now}`);
 
@@ -109,12 +108,13 @@ app.get("/edit", (req: any, res: any) => {
 	const properties: ModifyProps = req.body;
 
 	fs.readdir(`./uploaded/${req.session.folder}`, async (err, files) => {
-		let i = 0;
-		for (; i < files.length; i++) {
+		for (let i = 0; i < files.length; i++) {
 			const buffer = fs.readFileSync(
 				`./uploaded/${req.session.folder}/${files[i]}`
 			);
-			await editImage(req, res, files[i], buffer, properties);
+			const fileName = files[i].substring(0, files[i].indexOf("."));
+
+			await editImage(req, res, fileName, buffer, properties);
 		}
 		await sendImages(req, res);
 	});
