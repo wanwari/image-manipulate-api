@@ -41,7 +41,7 @@ const saveImages = async (
 	fileFormat: string
 ) => {
 	const newFile = `./processed/${folder}/${fileName}.${fileFormat}`;
-	sharp(buffer).toFile(newFile);
+	await sharp(buffer).toFile(newFile);
 };
 
 const sendImages = async (req: any, res: any) => {
