@@ -107,17 +107,35 @@ app.post("/upload", (req: any, res: any) => {
 app.get("/edit", (req: any, res: any) => {
 	const properties: ModifyProps = req.body;
 
-	fs.readdir(`./uploaded/${req.session.folder}`, async (err, files) => {
-		for (let i = 0; i < files.length; i++) {
-			const buffer = fs.readFileSync(
-				`./uploaded/${req.session.folder}/${files[i]}`
-			);
-			const fileName = files[i].substring(0, files[i].indexOf("."));
+	try {
+		fs.readdir(`./uploaded/${req.session.folder}`, async (err, files) => {
+			if (files) {
+				for (let i = 0; i < files.length; i++) {
+					const buffer = fs.readFileSync(
+						`./uploaded/${req.session.folder}/${files[i]}`
+					);
+					const fileName = files[i].substring(
+						0,
+						files[i].indexOf(".")
+					);
 
-			await editImage(req, res, fileName, buffer, properties);
-		}
-		await sendImages(req, res);
-	});
+					await editImage(req, res, fileName, buffer, properties);
+				}
+				await sendImages(req, res);
+			} else {
+				res.status(500).send({
+					edited: false,
+					responseMessage: "Error. No files uploaded to edit.",
+				});
+			}
+		});
+	} catch (error) {
+		console.log(error);
+		res.status(500).send({
+			edited: false,
+			responseMessage: "Error. Could not edit file(s).",
+		});
+	}
 });
 
 const editImage = async (
