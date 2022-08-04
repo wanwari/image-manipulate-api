@@ -12,6 +12,7 @@ import * as operate from "./Operations.js";
 import { ModifyProps } from "./Interfaces.js";
 import dotenv from "dotenv";
 import child_process from "child_process";
+import morgan from "morgan";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use(
 		saveUninitialized: true,
 	})
 );
+app.use(morgan("dev"));
 
 const PORT = process.env.PORT || 3000;
 
