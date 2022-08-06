@@ -106,7 +106,7 @@ app.post("/upload", (req: any, res: any) => {
 	}
 });
 
-app.get("/edit", (req: any, res: any) => {
+app.post("/edit", (req: any, res: any) => {
 	const properties: ModifyProps = req.body;
 
 	try {
@@ -121,7 +121,7 @@ app.get("/edit", (req: any, res: any) => {
 						files[i].indexOf(".")
 					);
 
-					await editImage(req, res, fileName, buffer, properties);
+					await editImage(req, fileName, buffer, properties);
 				}
 				await sendImages(req, res);
 			} else {
@@ -142,7 +142,6 @@ app.get("/edit", (req: any, res: any) => {
 
 const editImage = async (
 	req: any,
-	res: any,
 	fileName: string,
 	buffer: Buffer,
 	properties: any
